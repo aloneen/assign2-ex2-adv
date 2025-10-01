@@ -5,15 +5,23 @@ import (
 
 	"github.com/aloneen/assign2-ex2-adv/initializers"
 	"github.com/aloneen/assign2-ex2-adv/models"
+    "gorm.io/gorm"
 )
 
 func CreateUserWithProfile(user models.User) {
-	result := initializers.DB.Create(&user)
-	if result.Error != nil {
-		log.Println("Insert failed:", result.Error)
-	} else {
-		log.Println("Inserted user with profile:", user.ID)
-	}
+    err := initializers.DB.Transaction(func(tx *gorm.DB) error {
+        if err := tx.Create(&user).Error; err != nil {
+            return err
+        }
+        return nil
+    })
+
+    if err != nil {
+        log.Println("Insert failed:", err)
+        return
+    }
+
+    log.Println("Inserted user with profile:", user.ID)
 }
 
 func GetUsersWithProfiles() {
@@ -29,7 +37,7 @@ func GetUsersWithProfiles() {
 	}
 }
 
-func UpdateUserProfile(userID uint, newBio string) {
+func UpdateUserProfile(userID int, newBio string) {
 	err := initializers.DB.Model(&models.Profile{}).
 		Where("user_id = ?", userID).
 		Update("bio", newBio).Error
@@ -41,7 +49,7 @@ func UpdateUserProfile(userID uint, newBio string) {
 	}
 }
 
-func DeleteUser(userID uint) {
+func DeleteUser(userID int) {
 	err := initializers.DB.Delete(&models.User{}, userID).Error
 	if err != nil {
 		log.Println("Delete failed:", err)
